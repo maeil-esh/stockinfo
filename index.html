@@ -6,7 +6,6 @@
 <title>UK2 Investment — AI 시장 브리핑</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* 사용자의 원본 CSS 스타일 100% 보존 */
 :root {
   --bg:       #080c12;
   --bg2:      #0d1320;
@@ -37,6 +36,7 @@ body {
   overflow-x: hidden;
 }
 
+/* ── 배경 그리드 텍스처 ── */
 body::before {
   content: '';
   position: fixed; inset: 0;
@@ -706,7 +706,7 @@ footer {
 
 <script>
 // ════════════════════════════════════════════════
-// UK2 Investment — 실시간 데이터 시스템 (최종 통합형)
+// UK2 Investment — 실시간 데이터 엔진 (CORS & 302 리다이렉트 해결)
 // ════════════════════════════════════════════════
 
 const SYMBOLS = ['^KS11','^KQ11','KRW=X','CL=F','GC=F','^VIX','^TNX'].join(',');
@@ -776,11 +776,8 @@ function updateMacroCards(d) {
     const q = d[sym]; if (!q) return;
     const pEl = document.getElementById('mc-' + id + '-price');
     const dEl = document.getElementById('mc-' + id + '-day');
-    if (pEl) pEl.textContent = fmt(q.regularMarketPrice);
-    if (dEl) {
-      dEl.textContent = '당일 ' + fmtPct(q.regularMarketChangePercent);
-      dEl.className = upDown(q.regularMarketChangePercent);
-    }
+    if (pEl) { pEl.textContent = fmt(q.regularMarketPrice); pEl.classList.remove('loading-val'); }
+    if (dEl) { dEl.textContent = '당일 ' + fmtPct(q.regularMarketChangePercent); dEl.className = 'live-val ' + upDown(q.regularMarketChangePercent); }
   });
 }
 
@@ -814,10 +811,7 @@ function updateSampleMacro(d) {
     const vEl = document.getElementById(id);
     const cEl = document.getElementById(id + '-chg');
     if (vEl) vEl.textContent = (sym==='KRW=X'||sym==='GC=F') ? fmtNum(q.regularMarketPrice, 0) : fmtNum(q.regularMarketPrice, 2);
-    if (cEl) {
-      cEl.textContent = fmtPct(q.regularMarketChangePercent);
-      cEl.className = 's-macro-chg ' + upDown(q.regularMarketChangePercent);
-    }
+    if (cEl) { cEl.textContent = fmtPct(q.regularMarketChangePercent); cEl.className = 's-macro-chg ' + upDown(q.regularMarketChangePercent); }
   });
 }
 
@@ -845,7 +839,6 @@ function switchTab(name) {
 
 function openModal(name) { document.getElementById('modal-'+name).classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModal(name) { document.getElementById('modal-'+name).classList.remove('open'); document.body.style.overflow=''; }
-function openBeta() { openModal('beta'); }
 
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => {
@@ -863,10 +856,21 @@ const observer = new IntersectionObserver(entries => {
   });
 }, {threshold: 0.12});
 
-window.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-  loadMarketData();
-});
+function drawSpark(canvas) {
+  const pts = canvas.dataset.pts.split(',').map(Number);
+  const up = canvas.dataset.up === '1';
+  const W = canvas.width, H = canvas.height, pad = 3;
+  const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,W,H);
+  const mn = Math.min(...pts), mx = Math.max(...pts), range = mx - mn || 1;
+  const xs = pts.map((_,i) => pad + i*(W-pad*2)/(pts.length-1));
+  const ys = pts.map(v => H - pad - (v-mn)/range*(H-pad*2));
+  const col = up ? '#34d399' : '#f87171';
+  ctx.beginPath(); ctx.moveTo(xs[0], H); xs.forEach((x,i) => ctx.lineTo(x, ys[i])); ctx.lineTo(xs[xs.length-1], H); ctx.closePath();
+  ctx.fillStyle = up ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)'; ctx.fill();
+  ctx.beginPath(); xs.forEach((x,i) => i===0 ? ctx.moveTo(x,ys[i]) : ctx.lineTo(x,ys[i]));
+  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
+}
+function drawAllSparks() { document.querySelectorAll('.sparkcanvas').forEach(drawSpark); }
 
 function submitForm() {
   const name  = document.getElementById('f-name').value.trim();
@@ -879,25 +883,11 @@ function submitForm() {
   document.getElementById('successMsg').style.display='block';
 }
 
-function drawSpark(canvas) {
-  const pts = canvas.dataset.pts.split(',').map(Number);
-  const up = canvas.dataset.up === '1';
-  const W = canvas.width, H = canvas.height, pad = 3;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,W,H);
-  const mn = Math.min(...pts), mx = Math.max(...pts), range = mx - mn || 1;
-  const xs = pts.map((_,i) => pad + i*(W-pad*2)/(pts.length-1));
-  const ys = pts.map(v => H - pad - (v-mn)/range*(H-pad*2));
-  const col = up ? '#34d399' : '#f87171';
-  ctx.beginPath(); ctx.moveTo(xs[0], H);
-  xs.forEach((x,i) => ctx.lineTo(x, ys[i]));
-  ctx.lineTo(xs[xs.length-1], H); ctx.closePath();
-  ctx.fillStyle = up ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)'; ctx.fill();
-  ctx.beginPath(); xs.forEach((x,i) => i===0 ? ctx.moveTo(x,ys[i]) : ctx.lineTo(x,ys[i]));
-  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
-}
-function drawAllSparks() { document.querySelectorAll('.sparkcanvas').forEach(drawSpark); }
-drawAllSparks();
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  loadMarketData();
+  drawAllSparks();
+});
 </script>
 </body>
 </html>
