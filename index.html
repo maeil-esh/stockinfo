@@ -20,177 +20,248 @@
   --up:       #34d399;
   --down:     #f87171;
   --accent:   #60a5fa;
-  --glow:     rgba(201,168,76,0.15);
+  --glow:     rgba(201,168,76,0.18);
 }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+.ticker-bar { background: var(--bg2); border-bottom: 1px solid var(--border); overflow: hidden; height: 34px; position: relative; z-index: 10; }
+.ticker-inner { display: flex; align-items: center; white-space: nowrap; animation: ticker 40s linear infinite; height: 100%; }
+@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.tick-item { display: inline-flex; align-items: center; gap: 8px; padding: 0 28px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); border-right: 1px solid var(--border); height: 100%; }
+.tick-item .sym { color: var(--text); font-weight: 600; }
+.tick-item .up-c { color: var(--up); }
+.tick-item .dn-c { color: var(--down); }
+nav { position: sticky; top: 0; z-index: 100; background: rgba(8,12,18,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 0 5%; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--gold2); }
+.nav-logo span { color: var(--muted); font-size: 11px; display: block; letter-spacing: 2px; margin-top: -4px; }
+.nav-links { display: flex; gap: 32px; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { background: var(--gold); color: #080c12; font-weight: 600; font-size: 13px; padding: 9px 20px; border-radius: 6px; text-decoration: none; }
+.hero { position: relative; z-index: 1; min-height: 92vh; display: flex; align-items: center; padding: 80px 5% 60px; overflow: hidden; }
+.hero-bg-glow { position: absolute; width: 700px; height: 700px; background: radial-gradient(circle, rgba(201,168,76,0.10) 0%, transparent 70%); top: -100px; right: -100px; pointer-events: none; }
+.hero-left { flex: 1; max-width: 600px; }
+.hero h1 { font-family: 'DM Serif Display', serif; font-size: clamp(42px, 6vw, 72px); line-height: 1.08; color: #fff; margin-bottom: 24px; }
+.hero h1 em { font-style: italic; color: var(--gold2); }
+.hero p.sub { font-size: 17px; color: var(--muted); max-width: 480px; margin-bottom: 40px; }
+.btn-primary { background: var(--gold); color: #080c12; font-weight: 700; padding: 14px 32px; border-radius: 8px; text-decoration: none; display: inline-block; }
+.hero-right { flex: 0 0 420px; margin-left: 60px; }
+.preview-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
+.preview-body { padding: 20px; }
+.p-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.p-chg-up { color: var(--up); } .p-chg-dn { color: var(--down); }
+.stats-strip { border-top: 1px solid var(--border); background: var(--bg2); display: flex; justify-content: center; flex-wrap: wrap; }
+.stat-item { padding: 28px 48px; text-align: center; border-right: 1px solid var(--border); flex: 1; }
+.macro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; max-width: 1200px; margin: 20px auto; }
+.macro-card { background: var(--bg2); border: 1px solid var(--border); padding: 16px; border-radius: 12px; }
+.macro-label { font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 4px; }
+.macro-price { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #fff; }
+.uc { color: var(--up); } .dc { color: var(--down); }
+.section { padding: 80px 5%; max-width: 1200px; margin: 0 auto; }
+.reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
+.reveal.visible { opacity: 1; transform: none; }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
-body { background:var(--bg); color:var(--text); font-family:'DM Sans', sans-serif; line-height:1.6; overflow-x:hidden; }
-
-/* ── 스켈레톤 & 상태 표시 ── */
-.status-indicator { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; margin-bottom: 20px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; }
-.dot.live { background: var(--up); box-shadow: 0 0 10px var(--up); animation: pulse 2s infinite; }
-.dot.loading { background: var(--accent); }
-.dot.error { background: var(--down); }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-/* ── 레이아웃 & 카드 디자인 ── */
-.container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 60px; }
-.card { background: var(--bg2); border: 1px solid var(--border); padding: 30px; border-radius: 4px; position: relative; transition: all 0.3s; }
-.card:hover { border-color: var(--gold); transform: translateY(-4px); }
-.label { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.1em; display: block; margin-bottom: 15px; }
-.value { font-family: 'DM Serif Display', serif; font-size: 38px; margin-bottom: 8px; display: block; }
-.change { font-size: 15px; font-weight: 600; }
-.uc { color: var(--up); }
-.dc { color: var(--down); }
-
-/* ── 티커 ── */
-.ticker-wrap { background: var(--bg3); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 12px 0; overflow: hidden; white-space: nowrap; margin-bottom: 60px; }
-.ticker { display: inline-block; animation: ticker 40s linear infinite; padding-left: 100%; }
-.ticker span { display: inline-block; margin-right: 50px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
-@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-/* ── 히어로 ── */
-.hero { text-align: center; margin-bottom: 80px; padding: 100px 0; border-bottom: 1px solid var(--border); }
-.hero h1 { font-family: 'DM Serif Display', serif; font-size: clamp(48px, 8vw, 84px); line-height: 1; margin-bottom: 30px; letter-spacing: -0.02em; }
-.hero p { color: var(--muted); font-size: 18px; max-width: 600px; margin: 0 auto; }
+/* ── 모달 공통 ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 18px; width: 100%; max-width: 540px;
+  max-height: 82vh; overflow-y: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+}
+.modal-header { padding: 24px 28px 16px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: #fff; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer; }
+.modal-body { padding: 22px 28px 28px; font-size: 13px; color: var(--muted); line-height: 1.85; }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="hero">
-    <div class="status-indicator">
-      <div id="status-dot" class="dot loading"></div>
-      <span id="status-text">CONNECTING TO MARKET...</span>
-    </div>
-    <h1>Institutional Grade<br><span style="color:var(--gold)">Market Intelligence</span></h1>
-    <p>실시간 매크로 지표와 AI 기술을 결합하여 자산 운용의 통찰력을 제공합니다.</p>
+<div class="ticker-bar">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<nav>
+  <div class="nav-logo">UK2 Investment<span>AI MARKET BRIEFING</span></div>
+  <div class="nav-links">
+    <a href="#features">서비스</a>
+    <a href="#sample">브리핑 예시</a>
+    <a href="#plans">요금제</a>
+    <a href="#" onclick="openModal('about'); return false;">회사 소개</a>
+  </div>
+  <a href="#subscribe" class="nav-cta">무료 구독 시작 →</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <div class="hero-left">
+    <h1>시장을 읽는<br><em>가장 빠른 눈,</em><br>AI 브리핑</h1>
+    <p class="sub">UK2 Investment의 AI가 매일 아침 한국 시장 전체를 스캔합니다. 실시간 매크로 지표부터 섹터 분석까지, 출근길 3분으로 충분합니다.</p>
+    <a href="#subscribe" class="btn-primary">무료로 구독 시작</a>
   </div>
 
-  <div class="ticker-wrap">
-    <div class="ticker" id="ticker-content">
-      <span>LOADING REAL-TIME DATA...</span>
+  <div class="hero-right">
+    <div class="preview-card">
+      <div class="preview-body">
+        <div style="font-size:10px; color:var(--gold); margin-bottom:10px; letter-spacing:1px;">REAL-TIME MARKET</div>
+        <div class="p-row"><span>KOSPI</span><span id="pv-kospi">—</span><span id="pv-kospi-chg">0.00%</span></div>
+        <div class="p-row"><span>USD/KRW</span><span id="pv-krw">—</span><span id="pv-krw-chg">0.00%</span></div>
+        <div class="p-row"><span>WTI</span><span id="pv-wti">—</span><span id="pv-wti-chg">0.00%</span></div>
+        <div class="p-row"><span>Gold</span><span id="pv-gold">—</span><span id="pv-gold-chg">0.00%</span></div>
+      </div>
     </div>
   </div>
+</section>
 
-  <div class="grid" id="macro-grid">
-    <div class="card" id="card-KS11">
-      <span class="label">KOSPI COMPOSITE</span>
-      <span class="value" id="val-KS11">---</span>
-      <span class="change" id="chg-KS11">---</span>
+<div class="stats-strip">
+  <div class="stat-item">
+    <div style="font-size:32px; color:var(--gold2);" id="cnt-subscribers">2,847</div>
+    <div style="font-size:12px; color:var(--muted);">누적 구독자</div>
+  </div>
+  <div class="stat-item">
+    <div style="font-size:32px; color:var(--gold2);">매일 07:30</div>
+    <div style="font-size:12px; color:var(--muted);">브리핑 발송</div>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+    <div id="status-dot" style="width:8px; height:8px; border-radius:50%; background:var(--gold);"></div>
+    <span id="status-text" style="font-size:12px; color:var(--muted);">시장 데이터 동기화 중...</span>
+    <button onclick="loadMarketData()" style="margin-left:auto; background:var(--bg3); border:1px solid var(--border2); color:var(--muted); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:11px;">새로고침</button>
+  </div>
+  
+  <div class="macro-grid">
+    <div class="macro-card"><div class="macro-label">KOSPI</div><div class="macro-price" id="mc-kospi-price">—</div><div id="mc-kospi-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">KOSDAQ</div><div class="macro-price" id="mc-kosdaq-price">—</div><div id="mc-kosdaq-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">환율</div><div class="macro-price" id="mc-krw-price">—</div><div id="mc-krw-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">WTI 원유</div><div class="macro-price" id="mc-wti-price">—</div><div id="mc-wti-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">공포지수</div><div class="macro-price" id="mc-vix-price">—</div><div id="mc-vix-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">US 10Y</div><div class="macro-price" id="mc-us10y-price">—</div><div id="mc-us10y-day" style="font-size:11px;">0.00%</div></div>
+    <div class="macro-card"><div class="macro-label">금 선물</div><div class="macro-price" id="mc-gold-price">—</div><div id="mc-gold-day" style="font-size:11px;">0.00%</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-about">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">ABOUT UK2 Investment</div>
+      <button class="modal-close" onclick="closeModal('about')">×</button>
     </div>
-    <div class="card" id="card-KQ11">
-      <span class="label">KOSDAQ</span>
-      <span class="value" id="val-KQ11">---</span>
-      <span class="change" id="chg-KQ11">---</span>
-    </div>
-    <div class="card" id="card-KRW">
-      <span class="label">USD / KRW</span>
-      <span class="value" id="val-KRW">---</span>
-      <span class="change" id="chg-KRW">---</span>
-    </div>
-    <div class="card" id="card-CLF">
-      <span class="label">WTI CRUDE OIL</span>
-      <span class="value" id="val-CLF">---</span>
-      <span class="change" id="chg-CLF">---</span>
+    <div class="modal-body">
+      <h3>데이터를 넘어 인사이트를 제공합니다</h3>
+      <p>UK2 Investment는 2015년 설립 이후 국내 투자자들에게 가장 신속하고 정확한 시장 분석을 제공해왔습니다. 인공지능 기술을 활용하여 매일 아침 거대한 금융 데이터를 단 3분의 요약 브리핑으로 가공합니다.</p>
     </div>
   </div>
 </div>
 
 <script>
-// ════════════════════════════════════════════════
-// UK2 Investment — 데이터 엔진 (CORS & 리다이렉트 완전 해결판)
-// ════════════════════════════════════════════════
-
 const SYMBOLS = ['^KS11','^KQ11','KRW=X','CL=F','GC=F','^VIX','^TNX'].join(',');
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyq1pa4yozr_Hmd9rWQ6598dLujxe7tjCMfRRTrPXtKHKJy1eM93FV_n8SmCHUY-cF1BQ/exec';
 
-const fmtNum  = (n, dec=2) => (n !== undefined && n !== null) ? n.toLocaleString('ko-KR', {maximumFractionDigits: dec}) : '0.00';
-const fmtPct  = (p) => (p !== undefined && p !== null) ? (p >= 0 ? '+' : '') + p.toFixed(2) + '%' : '0.00%';
-const upDown  = (p) => p >= 0 ? 'uc' : 'dc';
-
-function setStatus(state) {
-    const dot = document.getElementById('status-dot');
-    const txt = document.getElementById('status-text');
-    dot.className = 'dot ' + state;
-    if(state === 'live') txt.innerText = 'SYSTEM LIVE: REAL-TIME FEED ACTIVE';
-    if(state === 'loading') txt.innerText = 'FETCHING MARKET DATA...';
-    if(state === 'error') txt.innerText = 'DATA CONNECTION ERROR';
-}
+const fmtNum = (n, d=2) => n ? n.toLocaleString('ko-KR', {maximumFractionDigits:d}) : '—';
+const fmtPct = (p) => p ? (p >= 0 ? '+' : '') + p.toFixed(2) + '%' : '0.00%';
 
 async function loadMarketData() {
-    setStatus('loading');
-    const fetchUrl = `${GAS_URL}?symbols=${encodeURIComponent(SYMBOLS)}&_=${Date.now()}`;
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  dot.style.background = 'var(--gold)';
+  txt.textContent = '데이터 업데이트 중...';
 
-    try {
-        const response = await fetch(fetchUrl, {
-            method: 'GET',
-            mode: 'cors',
-            redirect: 'follow', // 302 리다이렉트 해결의 핵심
-            cache: 'no-cache'
-        });
+  try {
+    const r = await fetch(`${GAS_URL}?symbols=${encodeURIComponent(SYMBOLS)}&t=${Date.now()}`, {
+      method: 'GET',
+      mode: 'cors',
+      redirect: 'follow' // 302 에러 해결 핵심
+    });
+    
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const results = data.quoteResponse.result;
+    const d = {};
+    results.forEach(r => d[r.symbol] = r);
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        if (!data.quoteResponse || !data.quoteResponse.result) throw new Error('Invalid Data');
-        
-        const results = data.quoteResponse.result;
-        const d = {};
-        results.forEach(r => { d[r.symbol] = r; });
+    // 1. 개별 카드 업데이트
+    updateEl('mc-kospi-price', 'mc-kospi-day', d['^KS11']);
+    updateEl('mc-kosdaq-price', 'mc-kosdaq-day', d['^KQ11']);
+    updateEl('mc-krw-price', 'mc-krw-day', d['KRW=X'], 0);
+    updateEl('mc-wti-price', 'mc-wti-day', d['CL=F'], 1);
+    updateEl('mc-vix-price', 'mc-vix-day', d['^VIX']);
+    updateEl('mc-us10y-price', 'mc-us10y-day', d['^TNX']);
+    updateEl('mc-gold-price', 'mc-gold-day', d['GC=F'], 0);
 
-        // UI 업데이트
-        updateUI(d);
-        setStatus('live');
-    } catch (e) {
-        console.error('Fetch Error:', e);
-        setStatus('error');
-    }
+    // 2. 히어로 프리뷰 업데이트
+    setHero('pv-kospi', 'pv-kospi-chg', d['^KS11']);
+    setHero('pv-krw', 'pv-krw-chg', d['KRW=X'], 0);
+    setHero('pv-wti', 'pv-wti-chg', d['CL=F'], 1);
+    setHero('pv-gold', 'pv-gold-chg', d['GC=F'], 0);
+
+    // 3. 티커 업데이트
+    buildTicker(d);
+
+    dot.style.background = 'var(--up)';
+    txt.textContent = '실시간 스트리밍 중 (' + new Date().toLocaleTimeString() + ')';
+  } catch (e) {
+    console.error('Data Fetch Error:', e);
+    dot.style.background = 'var(--down)';
+    txt.textContent = '연결 오류: ' + e.message;
+  }
 }
 
-function updateUI(d) {
-    // KOSPI
-    if(d['^KS11']) {
-        document.getElementById('val-KS11').innerText = fmtNum(d['^KS11'].regularMarketPrice);
-        const chg = d['^KS11'].regularMarketChangePercent;
-        document.getElementById('chg-KS11').innerText = fmtPct(chg);
-        document.getElementById('chg-KS11').className = 'change ' + upDown(chg);
-    }
-    // KOSDAQ
-    if(d['^KQ11']) {
-        document.getElementById('val-KQ11').innerText = fmtNum(d['^KQ11'].regularMarketPrice);
-        const chg = d['^KQ11'].regularMarketChangePercent;
-        document.getElementById('chg-KQ11').innerText = fmtPct(chg);
-        document.getElementById('chg-KQ11').className = 'change ' + upDown(chg);
-    }
-    // USD/KRW
-    if(d['KRW=X']) {
-        document.getElementById('val-KRW').innerText = fmtNum(d['KRW=X'].regularMarketPrice);
-        const chg = d['KRW=X'].regularMarketChangePercent;
-        document.getElementById('chg-KRW').innerText = fmtPct(chg);
-        document.getElementById('chg-KRW').className = 'change ' + upDown(chg);
-    }
-    // WTI
-    if(d['CL=F']) {
-        document.getElementById('val-CLF').innerText = fmtNum(d['CL=F'].regularMarketPrice);
-        const chg = d['CL=F'].regularMarketChangePercent;
-        document.getElementById('chg-CLF').innerText = fmtPct(chg);
-        document.getElementById('chg-CLF').className = 'change ' + upDown(chg);
-    }
-
-    // 티커 업데이트
-    const ticker = document.getElementById('ticker-content');
-    ticker.innerHTML = Object.values(d).map(r => `
-        <span>${r.symbol.replace('^','')} ${fmtNum(r.regularMarketPrice)} (<strong class="${upDown(r.regularMarketChangePercent)}">${fmtPct(r.regularMarketChangePercent)}</strong>)</span>
-    `).join('');
+function updateEl(pId, dId, q, dec=2) {
+  if(!q) return;
+  document.getElementById(pId).textContent = fmtNum(q.regularMarketPrice, dec);
+  const dEl = document.getElementById(dId);
+  dEl.textContent = fmtPct(q.regularMarketChangePercent);
+  dEl.className = q.regularMarketChangePercent >= 0 ? 'uc' : 'dc';
 }
 
-// 초기 로드 및 1분 간격 갱신
+function setHero(pId, dId, q, dec=2) {
+  if(!q) return;
+  document.getElementById(pId).textContent = fmtNum(q.regularMarketPrice, dec);
+  const dEl = document.getElementById(dId);
+  dEl.textContent = fmtPct(q.regularMarketChangePercent);
+  dEl.className = q.regularMarketChangePercent >= 0 ? 'p-chg-up' : 'p-chg-dn';
+}
+
+function buildTicker(d) {
+  const ticker = document.getElementById('ticker');
+  ticker.innerHTML = '';
+  Object.values(d).forEach(q => {
+    const item = document.createElement('div');
+    item.className = 'tick-item';
+    item.innerHTML = `<span class="sym">${q.symbol.replace('^','')}</span><span>${fmtNum(q.regularMarketPrice)}</span><span class="${q.regularMarketChangePercent>=0?'up-c':'dn-c'}">${fmtPct(q.regularMarketChangePercent)}</span>`;
+    ticker.appendChild(item);
+  });
+}
+
+function openModal(name) { document.getElementById('modal-'+name).classList.add('open'); }
+function closeModal(name) { document.getElementById('modal-'+name).classList.remove('open'); }
+
 loadMarketData();
-setInterval(loadMarketData, 60000);
-
+setInterval(loadMarketData, 300000); // 5분 간격 자동 갱신
 </script>
 </body>
 </html>
