@@ -774,7 +774,7 @@ footer {
   </div>
   <div class="stat-item reveal">
     <div class="stat-num">20+</div>
-    <div class="stat-label">모니터링 지표</div>
+    <div class="stat-label">모니터항 지표</div>
   </div>
   <div class="stat-item reveal">
     <div class="stat-num">5섹터</div>
@@ -831,12 +831,12 @@ footer {
       <div class="feature-desc">AI가 분석한 시황을 바탕으로 구체적인 투자 전략과 리스크 요인을 정리해 드립니다. 막연한 전망이 아닌 실행 가이드입니다.</div>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon">⚡</div>
+      <div class="feature-icon"></div>
       <div class="feature-title">3분 요약 설계</div>
       <div class="feature-desc">출근길 3분으로 하루 시장 전체를 파악할 수 있도록 설계됐습니다. 핵심 정보만 압축해 시간 낭비 없이 의사결정하세요.</div>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon">🔔</div>
+      <div class="feature-icon"></div>
       <div class="feature-title">이메일 자동 발송</div>
       <div class="feature-desc">매일 오전 7시 30분, 장 시작 전 받은편지함에 브리핑이 도착합니다. 앱 설치 없이 이메일만으로 서비스를 이용할 수 있습니다.</div>
     </div>
@@ -1365,62 +1365,44 @@ footer {
 <script>
 // ════════════════════════════════════════════════
 // UK2 Investment — 실시간 시황 데이터 시스템
-// Yahoo Finance 비공식 API + CORS 프록시 이중화
+// Google Apps Script 프록시 연동
 // ════════════════════════════════════════════════
 
 const SYMBOLS = ['^KS11','^KQ11','KRW=X','CL=F','GC=F','^VIX','^TNX'].join(',');
-const YAHOO_URL = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(SYMBOLS)}&lang=ko-KR`;
-const PROXIES = [
-  'https://api.allorigins.win/get?url=',
-  'https://corsproxy.io/?',
-];
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyq1pa4yozr_Hmd9rWQ6598dLujxe7tjCMfRRTrPXtKHKJy1eM93FV_n8SmCHUY-cF1BQ/exec';
 
 // ── 숫자 포매터 ──
 const fmtNum  = (n, dec=2) => n.toLocaleString('ko-KR', {maximumFractionDigits: dec});
 const fmtPct  = (p) => (p >= 0 ? '+' : '') + p.toFixed(2) + '%';
 const upDown  = (p) => p >= 0 ? 'uc' : 'dc';
 
-// ── 단일 프록시로 fetch ──
-async function tryFetch(proxy) {
-  const r = await fetch(proxy + encodeURIComponent(YAHOO_URL), {signal: AbortSignal.timeout(8000)});
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  
-  const outer = await r.json();
-  const raw = typeof outer === 'string' ? outer : (outer.contents ?? JSON.stringify(outer));
-  
-  // HTML 에러 페이지 반환 시 파싱 차단
-  if (raw.trim().startsWith('<')) {
-    throw new Error('Blocked by WAF or HTML response');
-  }
-  
-  const parsed = JSON.parse(raw);
-  if (!parsed.quoteResponse || !parsed.quoteResponse.result) {
-    throw new Error('Invalid JSON structure');
-  }
-  return parsed.quoteResponse.result;
-}
-
-// ── 메인 데이터 로드 ──
+// ── 메인 데이터 로드 (GAS 연동) ──
 async function loadMarketData() {
   setStatus('loading');
-  let results = null;
+  try {
+    const url = `${GAS_URL}?symbols=${encodeURIComponent(SYMBOLS)}`;
+    // GAS 서버를 거치므로 타임아웃을 10초로 여유있게 조정
+    const r = await fetch(url, {signal: AbortSignal.timeout(10000)});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
 
-  for (const proxy of PROXIES) {
-    try { results = await tryFetch(proxy); break; }
-    catch (e) { console.warn('프록시 실패:', proxy, e.message); }
+    const data = await r.json();
+    if (!data.quoteResponse || !data.quoteResponse.result) {
+        throw new Error('유효하지 않은 데이터 구조');
+    }
+
+    const results = data.quoteResponse.result;
+    const d = {};
+    results.forEach(r => d[r.symbol] = r);
+
+    updateMacroCards(d);
+    updateHeroCard(d);
+    updateSampleMacro(d);
+    buildTicker(d);
+    setStatus('live');
+  } catch (e) {
+    console.error('Data Load Error:', e.message);
+    setStatus('error');
   }
-
-  if (!results) { setStatus('error'); return; }
-
-  // 심볼 → 객체 매핑
-  const d = {};
-  results.forEach(r => d[r.symbol] = r);
-
-  updateMacroCards(d);
-  updateHeroCard(d);
-  updateSampleMacro(d);
-  buildTicker(d);
-  setStatus('live');
 }
 
 // ── 매크로 카드 업데이트 ──
