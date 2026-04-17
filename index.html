@@ -774,7 +774,7 @@ footer {
   </div>
   <div class="stat-item reveal">
     <div class="stat-num">20+</div>
-    <div class="stat-label">모니터항 지표</div>
+    <div class="stat-label">모니터링 지표</div>
   </div>
   <div class="stat-item reveal">
     <div class="stat-num">5섹터</div>
@@ -831,12 +831,12 @@ footer {
       <div class="feature-desc">AI가 분석한 시황을 바탕으로 구체적인 투자 전략과 리스크 요인을 정리해 드립니다. 막연한 전망이 아닌 실행 가이드입니다.</div>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon"></div>
+      <div class="feature-icon">⚡</div>
       <div class="feature-title">3분 요약 설계</div>
       <div class="feature-desc">출근길 3분으로 하루 시장 전체를 파악할 수 있도록 설계됐습니다. 핵심 정보만 압축해 시간 낭비 없이 의사결정하세요.</div>
     </div>
     <div class="feature-card reveal">
-      <div class="feature-icon"></div>
+      <div class="feature-icon">🔔</div>
       <div class="feature-title">이메일 자동 발송</div>
       <div class="feature-desc">매일 오전 7시 30분, 장 시작 전 받은편지함에 브리핑이 도착합니다. 앱 설치 없이 이메일만으로 서비스를 이용할 수 있습니다.</div>
     </div>
@@ -1182,7 +1182,6 @@ footer {
     </div>
 
     <div class="about-body">
-
       <div class="about-section">
         <div class="about-section-label">MISSION</div>
         <div class="about-mission-text">
@@ -1267,7 +1266,6 @@ footer {
         <div class="about-contact-desc">서비스 문의, 기업 제휴, 광고 등은 아래 이메일로 연락주세요.<br>영업일 기준 1~2일 내 답변 드립니다.</div>
         <a href="mailto:ehsmaster.kr@gmail.com?subject=UK2 Investment 문의" class="about-email-btn">ehsmaster.kr@gmail.com →</a>
       </div>
-
     </div>
   </div>
 </div>
@@ -1364,57 +1362,59 @@ footer {
 
 <script>
 // ════════════════════════════════════════════════
-// UK2 Investment — 실시간 시황 데이터 시스템
-// Google Apps Script 프록시 연동
+// UK2 Investment — 실시간 시황 데이터 시스템 (GAS 최종형)
 // ════════════════════════════════════════════════
 
 const SYMBOLS = ['^KS11','^KQ11','KRW=X','CL=F','GC=F','^VIX','^TNX'].join(',');
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyq1pa4yozr_Hmd9rWQ6598dLujxe7tjCMfRRTrPXtKHKJy1eM93FV_n8SmCHUY-cF1BQ/exec';
 
-// ── 숫자 포매터 ──
 const fmtNum  = (n, dec=2) => n.toLocaleString('ko-KR', {maximumFractionDigits: dec});
 const fmtPct  = (p) => (p >= 0 ? '+' : '') + p.toFixed(2) + '%';
 const upDown  = (p) => p >= 0 ? 'uc' : 'dc';
 
-// ── 메인 데이터 로드 (GAS 연동) ──
 async function loadMarketData() {
-  setStatus('loading');
-  try {
-    const url = `${GAS_URL}?symbols=${encodeURIComponent(SYMBOLS)}`;
-    // GAS 서버를 거치므로 타임아웃을 10초로 여유있게 조정
-    const r = await fetch(url, {signal: AbortSignal.timeout(10000)});
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    setStatus('loading');
+    const fetchUrl = `${GAS_URL}?symbols=${encodeURIComponent(SYMBOLS)}&t=${Date.now()}`;
 
-    const data = await r.json();
-    if (!data.quoteResponse || !data.quoteResponse.result) {
-        throw new Error('유효하지 않은 데이터 구조');
+    try {
+        const response = await fetch(fetchUrl, {
+            method: 'GET',
+            mode: 'cors',
+            redirect: 'follow',
+            cache: 'no-cache'
+        });
+
+        if (!response.ok) throw new Error(`HTTP 에러: ${response.status}`);
+        
+        const data = await response.json();
+        if (!data.quoteResponse || !data.quoteResponse.result) {
+            throw new Error('데이터 구조가 올바르지 않습니다.');
+        }
+        
+        const results = data.quoteResponse.result;
+        const d = {};
+        results.forEach(r => d[r.symbol] = r);
+
+        updateMacroCards(d);
+        updateHeroCard(d);
+        updateSampleMacro(d);
+        buildTicker(d);
+        setStatus('live');
+    } catch (e) {
+        console.error('Data Load Error:', e.message);
+        setStatus('error');
     }
-
-    const results = data.quoteResponse.result;
-    const d = {};
-    results.forEach(r => d[r.symbol] = r);
-
-    updateMacroCards(d);
-    updateHeroCard(d);
-    updateSampleMacro(d);
-    buildTicker(d);
-    setStatus('live');
-  } catch (e) {
-    console.error('Data Load Error:', e.message);
-    setStatus('error');
-  }
 }
 
-// ── 매크로 카드 업데이트 ──
 function updateMacroCards(d) {
   const cards = [
-    { id: 'kospi',  sym: '^KS11', fmt: v => fmtNum(v, 2),               suffix: '' },
-    { id: 'kosdaq', sym: '^KQ11', fmt: v => fmtNum(v, 2),               suffix: '' },
-    { id: 'krw',    sym: 'KRW=X', fmt: v => fmtNum(v, 0) + '원',        suffix: '' },
-    { id: 'wti',    sym: 'CL=F',  fmt: v => '$' + v.toFixed(1),         suffix: '' },
-    { id: 'vix',    sym: '^VIX',  fmt: v => v.toFixed(2),               suffix: '' },
-    { id: 'us10y',  sym: '^TNX',  fmt: v => v.toFixed(2) + '%',         suffix: '' },
-    { id: 'gold',   sym: 'GC=F',  fmt: v => '$' + fmtNum(v, 0),         suffix: '' },
+    { id: 'kospi',  sym: '^KS11', fmt: v => fmtNum(v, 2) },
+    { id: 'kosdaq', sym: '^KQ11', fmt: v => fmtNum(v, 2) },
+    { id: 'krw',    sym: 'KRW=X', fmt: v => fmtNum(v, 0) + '원' },
+    { id: 'wti',    sym: 'CL=F',  fmt: v => '$' + v.toFixed(1) },
+    { id: 'vix',    sym: '^VIX',  fmt: v => v.toFixed(2) },
+    { id: 'us10y',  sym: '^TNX',  fmt: v => v.toFixed(2) + '%' },
+    { id: 'gold',   sym: 'GC=F',  fmt: v => '$' + fmtNum(v, 0) },
   ];
 
   cards.forEach(({ id, sym, fmt }) => {
@@ -1434,7 +1434,6 @@ function updateMacroCards(d) {
   });
 }
 
-// ── 히어로 미리보기 카드 ──
 function updateHeroCard(d) {
   const set = (id, val, cls) => {
     const el = document.getElementById(id);
@@ -1466,7 +1465,6 @@ function updateHeroCard(d) {
   }
 }
 
-// ── 샘플 매크로 탭 ──
 function updateSampleMacro(d) {
   const rows = [
     { id: 'sm-kospi',  sym: '^KS11', fmt: v => fmtNum(v,2) },
@@ -1487,7 +1485,6 @@ function updateSampleMacro(d) {
   });
 }
 
-// ── 티커바 재생성 ──
 function buildTicker(d) {
   const items = [
     { sym:'KOSPI',    key:'^KS11', fmt: v => fmtNum(v,2) },
@@ -1513,7 +1510,6 @@ function buildTicker(d) {
   });
 }
 
-// ── 상태 표시 ──
 function setStatus(state) {
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
@@ -1540,16 +1536,15 @@ function setStatus(state) {
   }
 }
 
-// ── 탭 전환 ──
 function switchTab(name) {
   document.querySelectorAll('.sample-tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sample-content').forEach(c => c.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
+  const targetTab = document.getElementById('tab-'+name);
+  if(targetTab) targetTab.classList.add('active');
   drawAllSparks();
 }
 
-// ── Canvas 스파크라인 ──
 function drawSpark(canvas) {
   const pts = canvas.dataset.pts.split(',').map(Number);
   const up = canvas.dataset.up === '1';
@@ -1569,10 +1564,10 @@ function drawSpark(canvas) {
   const lx = xs[xs.length-1], ly = ys[ys.length-1];
   ctx.beginPath(); ctx.arc(lx,ly,2.5,0,Math.PI*2); ctx.fillStyle = col; ctx.fill();
 }
+
 function drawAllSparks() { document.querySelectorAll('.sparkcanvas').forEach(drawSpark); }
 drawAllSparks();
 
-// ── 카운터 애니메이션 ──
 function animateCounter(el, target, suffix='') {
   let cur = 0; const step = Math.ceil(target/60);
   const t = setInterval(() => {
@@ -1581,7 +1576,6 @@ function animateCounter(el, target, suffix='') {
   }, 20);
 }
 
-// ── Scroll reveal ──
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => {
     if(e.isIntersecting) {
@@ -1593,18 +1587,32 @@ const observer = new IntersectionObserver(entries => {
 }, {threshold: 0.12});
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-// ── 모달 제어 ──
-function openModal(name) { document.getElementById('modal-'+name).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(name) { document.getElementById('modal-'+name).classList.remove('open'); document.body.style.overflow=''; }
+function openModal(name) { 
+    const modal = document.getElementById('modal-'+name);
+    if(modal) {
+        modal.classList.add('open'); 
+        document.body.style.overflow='hidden'; 
+    }
+}
+function closeModal(name) { 
+    const modal = document.getElementById('modal-'+name);
+    if(modal) {
+        modal.classList.remove('open'); 
+        document.body.style.overflow=''; 
+    }
+}
 function openBeta() { openModal('beta'); }
+
 document.addEventListener('keydown', e => {
   if(e.key==='Escape') {
-    ['about','beta','terms','privacy','cancel'].forEach(n => document.getElementById('modal-'+n).classList.remove('open'));
+    ['about','beta','terms','privacy','cancel'].forEach(n => {
+        const modal = document.getElementById('modal-'+n);
+        if(modal) modal.classList.remove('open');
+    });
     document.body.style.overflow='';
   }
 });
 
-// ── 폼 제출 ──
 function submitForm() {
   const name  = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
@@ -1613,10 +1621,10 @@ function submitForm() {
   if(!email || !email.includes('@')) { alert('올바른 이메일 주소를 입력해주세요.'); return; }
   if(!agree) { alert('이용약관에 동의해주세요.'); return; }
   document.getElementById('formContent').style.display='none';
-  document.getElementById('successMsg').style.display='block';
+  const successMsg = document.getElementById('successMsg');
+  if(successMsg) successMsg.style.display='block';
 }
 
-// ── 페이지 로드 시 자동 실행 ──
 loadMarketData();
 </script>
 </body>
