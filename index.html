@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -1409,18 +1410,51 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── 폼 제출 ──
 function submitForm() {
-  const name  = document.getElementById('f-name').value.trim();
+  const name = document.getElementById('f-name').value.trim();
   const email = document.getElementById('f-email').value.trim();
   const agree = document.getElementById('f-agree').checked;
-  if (!name)  { alert('이름을 입력해주세요.'); return; }
+
+  if (!name) { alert('이름을 입력해주세요.'); return; }
   if (!email || !email.includes('@')) { alert('올바른 이메일 주소를 입력해주세요.'); return; }
-  if (!agree) { alert('이용약관에 동의해주세요.'); return; }
-  const fc = document.getElementById('formContent');
-  const sm = document.getElementById('successMsg');
-  if (fc) fc.style.display = 'none';
-  if (sm) sm.style.display = 'block';
+  if (!agree) { alert('개인정보 수집 및 이용에 동의해주세요.'); return; }
+
+  const btn = document.querySelector('button[onclick="submitForm()"]');
+  if (btn) {
+      btn.innerText = "신청 처리 중...";
+      btn.disabled = true;
+  }
+
+  // ⚠️ 여기에 본인의 배포 URL을 꼭 넣으세요!
+  const WEB_APP_URL = "https://script.google.com/macros/s/1KIY2vtayrx8r9qgMuCaeHoXqKI8iwKwjr69nLNRCAzA/edit?gid=0#gid=0/exec";
+
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      name: name,
+      email: email,
+      phone: "홈페이지 신청",
+      investmentType: "미정",
+      plan: "사전예약"
+    })
+  })
+  .then(() => {
+    alert("✅ 구독 신청이 완료되었습니다!");
+    // 입력창 초기화
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-email').value = '';
+    document.getElementById('f-agree').checked = false;
+  })
+  .catch(err => {
+    alert("❌ 오류가 발생했습니다. 다시 시도해 주세요.");
+  })
+  .finally(() => {
+    if (btn) {
+        btn.innerText = "사전예약 신청하기";
+        btn.disabled = false;
+    }
+  });
 }
 
 // ── 초기 로드 ──
